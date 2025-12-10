@@ -1,0 +1,46 @@
+# inside app/main.py
+
+from .models import Node, Edge, Condition, GraphCreateRequest
+from .engine import create_graph
+
+@app.post("/graph/create/sample/summarization", response_model=GraphCreateResponse)
+async def create_sample_summarization_graph():
+    """
+    Creates a sample workflow implementing:
+      1. split_text
+      2. generate_summaries
+      3. merge_summaries
+      4. refine_summary
+    """
+
+    nodes = [
+        Node(id="split", tool_name="split_text"),
+        Node(id="summarize_chunks", tool_name="generate_summaries"),
+        Node(id="merge", tool_name="merge_summaries"),
+        Node(id="refine", tool_name="refine_summary"),
+    ]
+
+    edges = [
+        Edge(source="split", target="summarize_chunks"),
+        Edge(source="summarize_chunks", target="merge"),
+        Edge(source="merge", target="refine"),
+        # Optional: add a loop by using a Condition on summary length
+        # Edge(
+        #     source="refine",
+        #     target="refine",
+        #     condition=Condition(
+        #         key="summary",
+        #         op="length_gt",
+        #         value=400,
+        #     ),
+        # ),
+    ]
+
+    req = GraphCreateRequest(
+        nodes=nodes,
+        edges=edges,
+        start_node_id="split",
+    )
+
+    graph_id = create_graph(req)
+    return GraphCreateResponse(graph_id=graph_id)
